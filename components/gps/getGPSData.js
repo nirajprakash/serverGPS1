@@ -154,10 +154,16 @@ function _getNewModel(bag) {
     var rawfields = bag.raw.split("_");
 
     winston.verbose(where + "| rawfields|", rawfields);
-    if (rawfields && rawfields.length >= 2) {
+    if (rawfields && rawfields.length >= 2 && !isNaN(rawfields[0]) && !isNaN(rawfields[1])) {
         bag.lat = rawfields[0];
+        bag.lat = bag.lat / 1000000;
         bag.lng = rawfields[1];
+        bag.lng = bag.lng / 1000000;
+
+        // console.log(parseInt(rawfields[0]), parseInt(rawfields[1]));
     }
+
+    //console.log(bag.lat, bag.lng);
     var date = new Date();
 
     var data = {
