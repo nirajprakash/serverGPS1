@@ -22,11 +22,11 @@ function getGPSData(req, res) {
         }
     };
     mAsync.series([
-        checkInputParams.bind(null, bag),
-        verifyAccess.bind(null, bag),
-        dbAddData.bind(null, bag)
-    ],
-        function (err) {
+            checkInputParams.bind(null, bag),
+            verifyAccess.bind(null, bag),
+            dbAddData.bind(null, bag)
+        ],
+        function(err) {
             if (err) {
                 res.status(500);
                 bag.error = err;
@@ -48,7 +48,7 @@ function checkInputParams(bag, next) {
     var where = bag.where + '|' + checkInputParams.name;
     winston.verbose(where, 'Inside');
     if (_.isEmpty(bag.reqQuery)) {
-        
+
         winston.error(where, errorCommon.missingRequestQuery());
         return next(errorCommon.missingRequestQuery());
 
@@ -71,17 +71,17 @@ function checkInputParams(bag, next) {
         return next(errorCommon.missingQueryParam('rawdata'));
     }
 
-    bag.auth= {
-        'user': bag.reqQuery.username,
-        'pass': bag.reqQuery.password
-    }
-    // if (_.isEmpty(bag.reqHeader.authorization)) {
-    //     if (_.isEmpty(bag.reqBody.authorization)) {
-    //         winston.error(where, errorCommon.authHeaderNotPresent());
-    //         return next(errorCommon.authHeaderNotPresent());
-    //     } else {
-    //         bag.authHeader = bag.reqBody.authorization.split(' ', 3);
-    //     }
+    bag.auth = {
+            'user': bag.reqQuery.username,
+            'pass': bag.reqQuery.password
+        }
+        // if (_.isEmpty(bag.reqHeader.authorization)) {
+        //     if (_.isEmpty(bag.reqBody.authorization)) {
+        //         winston.error(where, errorCommon.authHeaderNotPresent());
+        //         return next(errorCommon.authHeaderNotPresent());
+        //     } else {
+        //         bag.authHeader = bag.reqBody.authorization.split(' ', 3);
+        //     }
 
     // } else {
     //     bag.authHeader = bag.reqHeader.authorization.split(' ', 3);
@@ -122,15 +122,15 @@ function dbAddData(bag, next) {
     var dbEntry = _getNewModel(bag);
     mModel.create(dbEntry)
         .asCallback(
-        function (err, project) {
-            // body...
-            if (err) {
-                winston.error(where, errorCommon.dbOperationFailed(), err);
-                return next(errorCommon.dbOperationFailed())
+            function(err, project) {
+                // body...
+                if (err) {
+                    winston.error(where, errorCommon.dbOperationFailed(), err);
+                    return next(errorCommon.dbOperationFailed())
+                }
+                bag.resBody.data.isInserted = true;
+                return next();
             }
-            bag.resBody.data.isInserted = true;
-            return next();
-        }
         );
 
 }
@@ -151,12 +151,12 @@ function _getNewModel(bag) {
         }
     */
 
-    var rawfields = bag.raw.split(",");
+    var rawfields = bag.raw.split("_");
 
-winston.verbose(where+ "| rawfields|",rawfields);
-    if(rawfields && rawfields.length>=2){
-        bag.lat=rawfields[0];
-        bag.lng=rawfields[1];
+    winston.verbose(where + "| rawfields|", rawfields);
+    if (rawfields && rawfields.length >= 2) {
+        bag.lat = rawfields[0];
+        bag.lng = rawfields[1];
     }
     var date = new Date();
 
