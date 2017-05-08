@@ -12,21 +12,16 @@ function getGPSData(req, res) {
     var bag = {
         reqHeader: req.headers,
         reqQuery: req.query,
-        resBody: {
-            status: 1,
-            message: 'success',
-            error: {},
-            data: {
-                isInserted: false
-            }
-        }
+        resBody: {}
     };
     mAsync.series([
-            checkInputParams.bind(null, bag),
-            verifyAccess.bind(null, bag),
-            dbAddData.bind(null, bag)
-        ],
-        function(err) {
+        checkInputParams.bind(null, bag),
+        verifyAccess.bind(null, bag),
+        dbGetData.bind(null, bag),
+        assignWithResponse.bind(null, bag)
+
+    ],
+        function (err) {
             if (err) {
                 res.status(500);
                 bag.error = err;
@@ -35,7 +30,6 @@ function getGPSData(req, res) {
                 bag.resBody.error = err;
                 bag.resBody.message = '[Failed]: ' + err.message;
                 winston.error("Error:  ", bag.resBody);
-
             }
 
             res.send(bag.resBody);
@@ -48,54 +42,34 @@ function checkInputParams(bag, next) {
     var where = bag.where + '|' + checkInputParams.name;
     winston.verbose(where, 'Inside');
     if (_.isEmpty(bag.reqQuery)) {
-
         winston.error(where, errorCommon.missingRequestQuery());
         return next(errorCommon.missingRequestQuery());
-
-
     }
 
     if (!bag.reqQuery.username) {
         winston.error(where, errorCommon.missingQueryParam("username"));
         return next(errorCommon.missingQueryParam("username"));
-
     }
 
     if (!bag.reqQuery.password) {
         winston.error(where, errorCommon.missingQueryParam("password"));
         return next(errorCommon.missingQueryParam("password"));
+    }
 
-    }
-    if (_.isEmpty(bag.reqQuery.rawdata)) {
-        winston.error(where, errorCommon.missingQueryParam('rawdata'));
-        return next(errorCommon.missingQueryParam('rawdata'));
-    }
+    bag.offset = 0;
+    if (bag.reqQuery.offset)
+        bag.offset = parseInt(bag.reqQuery.offset);
+
+    bag.limit = 1;
+    if (bag.reqQuery.limit)
+        bag.limit = parseInt(bag.reqQuery.limit);
 
     bag.auth = {
-            'user': bag.reqQuery.username,
-            'pass': bag.reqQuery.password
-        }
-        // if (_.isEmpty(bag.reqHeader.authorization)) {
-        //     if (_.isEmpty(bag.reqBody.authorization)) {
-        //         winston.error(where, errorCommon.authHeaderNotPresent());
-        //         return next(errorCommon.authHeaderNotPresent());
-        //     } else {
-        //         bag.authHeader = bag.reqBody.authorization.split(' ', 3);
-        //     }
-
-    // } else {
-    //     bag.authHeader = bag.reqHeader.authorization.split(' ', 3);
-
-    // }
-
-    // if (_.first(bag.authHeader) !== 'Bearer') {
-    //     winston.error(where, errorCommon.invalidAuthHeader(bag.authHeader[0]));
-    //     return next(errorCommon.invalidAuthHeader(bag.authHeader[0]));
-    // }
-
+        'user': bag.reqQuery.username,
+        'pass': bag.reqQuery.password
+    }
 
     bag.raw = bag.reqQuery.rawdata;
-
     return next();
 }
 
@@ -105,76 +79,66 @@ function verifyAccess(bag, next) {
 
     if (mUserMain.username == bag.auth.user && mUserMain.password == bag.auth.pass) {
         return next();
-
     }
     return next(errorCommon.unAuthorizedClient(bag.authHeader[1]));
-
-
-
 }
 
 
-function dbAddData(bag, next) {
-
-    var where = bag.where + '|' + dbAddData.name;
+function dbGetData(bag, next) {
+    var where = bag.where + '|' + dbGetData.name;
     winston.verbose(where, 'Inside');
 
-    var dbEntry = _getNewModel(bag);
-    mModel.create(dbEntry)
-        .asCallback(
-            function(err, project) {
-                // body...
-                if (err) {
-                    winston.error(where, errorCommon.dbOperationFailed(), err);
-                    return next(errorCommon.dbOperationFailed())
-                }
-                bag.resBody.data.isInserted = true;
-                return next();
-            }
-        );
+    var query = {
+        order: [
+            ['updatedAt', 'DESC']
+        ],
+        offset: bag.offset,
+        limit: bag.limit
+    };
 
-}
+    query.where.$and = [];
 
+    /*if (bag.bookingStatuses) {
+        query.where.$and.push(__generateLikeQueryFromArray(bag.bookingStatuses, 'status'));
+    }*/
 
-function _getNewModel(bag) {
-    var where = bag.where + '|' + _getNewModel.name;
-    winston.verbose(where, 'Inside');
-
-    /*
-        var featureIdArr = [];
-        if (!_.isEmpty(bag.reqQuery.featureIds)) {
-            var featureIds = bag.reqQuery.featureIds.split(',');
-            if (featureIds && featureIds.length >= 0){
-
+    winston.debug('query: ', util.inspect(query, false, null, true));
+    mModel.findAll(query).asCallback(
+        function (err, gpsData) {
+            if (err) {
+                winston.error(where, errList.dbOperationFailed(), err);
+                return next(errList.dbOperationFailed());
             }
 
+            bag.gpsData = _.pluck(gpsData, 'dataValues');
+            //winston.verbose(where + "||  bookingList  ||", bag.bookings);
+
+
+            return next();
         }
-    */
+    );
+}
 
-    var rawfields = bag.raw.split("_");
 
-    winston.verbose(where + "| rawfields|", rawfields);
-    if (rawfields && rawfields.length >= 2 && !isNaN(rawfields[0]) && !isNaN(rawfields[1])) {
-        bag.lat = rawfields[0];
-        bag.lat = bag.lat / 1000000;
-        bag.lng = rawfields[1];
-        bag.lng = bag.lng / 1000000;
+function assignWithResponse(bag) {
+    var where = bag.where + '|' + _assignWithResponse.name;
+    winston.verbose(where, 'Inside');
 
-        // console.log(parseInt(rawfields[0]), parseInt(rawfields[1]));
+    if (_.isEmpty(bag.gpsData)) {
+        return next();
     }
-
-    //console.log(bag.lat, bag.lng);
-    var date = new Date();
-
-    var data = {
-        date: date.toString(),
-        raw: bag.raw,
-        lat: bag.lat,
-        lng: bag.lng
-    }
-
-    return data;
-
-
-
+    var data = [];
+    _.each(bag.gpsData, function (gpsRow) {
+        var gpsItem = {
+            coords: {
+                lat: gpsItem.lat,
+                lng: gpsItem.lng
+            },
+            truckId: "aa",
+            saftey_stat: "SAFE"
+        };
+        data.push(gpsItem);
+    });
+    resBody = data;
+    return next();
 }

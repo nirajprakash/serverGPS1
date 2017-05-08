@@ -1,0 +1,59 @@
+{
+  "project_info": {
+    "project_number": "592469848065",
+    "firebase_url": "https://fancymonk-1327.firebaseio.com",
+    "project_id": "fancymonk-1327",
+    "storage_bucket": "fancymonk-1327.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:592469848065:android:31f548a5653b8b7a",
+        "android_client_info": {
+          "package_name": "com.fancymonk.customer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "592469848065-90rlooergqb58did9hnqvoa55mflt5o1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fancymonk.customer",
+            "certificate_hash": "152C2AFE51D0C73B461FDD9694AF92A61F520DE3"
+          }
+        },
+        {
+          "client_id": "592469848065-f4dpk77n3amhq6hqegqvlokiaehav0tp.apps.googleusercontent.com",
+          "client_type": 3
+        },
+        {
+          "client_id": "592469848065-70g8mhuau3h7j45nc8c0qf791j495572.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBxLV2xdzbQ1LHjv1yrrULgJ697McRsZMw"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "592469848065-f4dpk77n3amhq6hqegqvlokiaehav0tp.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
