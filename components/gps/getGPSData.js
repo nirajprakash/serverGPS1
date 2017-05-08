@@ -96,7 +96,7 @@ function dbGetData(bag, next) {
         limit: bag.limit
     };
 
-    query.where.$and = [];
+    //query.where.$and = [];
 
     /*if (bag.bookingStatuses) {
         query.where.$and.push(__generateLikeQueryFromArray(bag.bookingStatuses, 'status'));
@@ -120,8 +120,8 @@ function dbGetData(bag, next) {
 }
 
 
-function assignWithResponse(bag) {
-    var where = bag.where + '|' + _assignWithResponse.name;
+function assignWithResponse(bag, next) {
+    var where = bag.where + '|' + assignWithResponse.name;
     winston.verbose(where, 'Inside');
 
     if (_.isEmpty(bag.gpsData)) {
@@ -131,14 +131,15 @@ function assignWithResponse(bag) {
     _.each(bag.gpsData, function (gpsRow) {
         var gpsItem = {
             coords: {
-                lat: gpsItem.lat,
-                lng: gpsItem.lng
+                lat: gpsRow.lat,
+                lng: gpsRow.lng
             },
+            date: gpsRow.date,
             truckId: "aa",
             saftey_stat: "SAFE"
         };
         data.push(gpsItem);
     });
-    resBody = data;
+    bag.resBody = data;
     return next();
 }
