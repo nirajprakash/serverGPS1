@@ -136,7 +136,7 @@ function assignWithResponse(bag, next) {
             },
             date: gpsRow.date,
             truckId: "aa",
-            saftey_stat: "SAFE"
+            safety_stat: "SAFE"
         };
         data.push(gpsItem);
     });
