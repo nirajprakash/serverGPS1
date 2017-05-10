@@ -51,6 +51,14 @@ module.exports = {
         };
     },
 
+    notFound: function(type, value){
+        return {
+            code: 404,
+            message: 'not found: ' + type + '=' + value
+        };
+
+    },
+
 
     invalidGrantType: function(grant_type) {
         return {

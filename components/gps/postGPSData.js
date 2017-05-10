@@ -3,6 +3,8 @@ var self = postGPSData;
 module.exports = self;
 
 var mModel = sequelize.import('../../models/gps_input.js');
+
+var mModelTruck = sequelize.import('../../models/truck.js');
 var mAsync = require('async');
 var mUserMain = require('../../utils/userMain.json');
 
@@ -22,11 +24,13 @@ function postGPSData(req, res) {
         }
     };
     mAsync.series([
-            checkInputParams.bind(null, bag),
-            verifyAccess.bind(null, bag),
-            dbAddData.bind(null, bag)
-        ],
-        function(err) {
+        checkInputParams.bind(null, bag),
+        verifyAccess.bind(null, bag),
+        getTruck.bind(null, bag),
+        addTruck.bind(null, bag),
+        dbAddData.bind(null, bag)
+    ],
+        function (err) {
             if (err) {
                 res.status(500);
                 bag.error = err;
@@ -71,17 +75,24 @@ function checkInputParams(bag, next) {
         return next(errorCommon.missingQueryParam('rawdata'));
     }
 
+    if (bag.reqQuery.truckid) {
+        bag.truckKey = bag.reqQuery.truckid;
+    }
+
+
+
+
     bag.auth = {
-            'user': bag.reqQuery.username,
-            'pass': bag.reqQuery.password
-        }
-        // if (_.isEmpty(bag.reqHeader.authorization)) {
-        //     if (_.isEmpty(bag.reqBody.authorization)) {
-        //         winston.error(where, errorCommon.authHeaderNotPresent());
-        //         return next(errorCommon.authHeaderNotPresent());
-        //     } else {
-        //         bag.authHeader = bag.reqBody.authorization.split(' ', 3);
-        //     }
+        'user': bag.reqQuery.username,
+        'pass': bag.reqQuery.password
+    }
+    // if (_.isEmpty(bag.reqHeader.authorization)) {
+    //     if (_.isEmpty(bag.reqBody.authorization)) {
+    //         winston.error(where, errorCommon.authHeaderNotPresent());
+    //         return next(errorCommon.authHeaderNotPresent());
+    //     } else {
+    //         bag.authHeader = bag.reqBody.authorization.split(' ', 3);
+    //     }
 
     // } else {
     //     bag.authHeader = bag.reqHeader.authorization.split(' ', 3);
@@ -108,9 +119,76 @@ function verifyAccess(bag, next) {
 
     }
     return next(errorCommon.unAuthorizedClient(bag.authHeader[1]));
+}
+
+function getTruck(bag, next) {
+    if (!bag.truckKey) {
+        return next();
+    }
+
+    var where = bag.where + '|' + getTruck.name;
+    winston.verbose(where, 'Inside');
 
 
+    var query = {
+        where: {
+            truckKey: bag.truckKey
+        }
+    };
 
+    mModelTruck.findOne(query)
+        .asCallback(
+        function (err, data) {
+            if (err) {
+                winston.error(where, errorCommon.dbOperationFailed(), err);
+                return next(errorCommon.dbOperationFailed());
+            }
+
+            if (data != null) {
+                bag.truckId = data.id;
+                bag.truckKey = data.truckKey;
+
+
+            }
+            return next();
+            /*
+           winston.error('where: ' + where, errorCommon.notFound("truckid", bag.truckKey));
+           return next(errorCommon.notFound("truckid", bag.truckKey));
+*/
+        }
+        );
+}
+
+
+function addTruck(bag, next) {
+    if (bag.truckId) {
+        return next();
+    }
+    if (!bag.truckKey) {
+        return next();
+    }
+
+    var where = bag.where + '|' + addTruck.name;
+    winston.verbose(where, 'Inside');
+
+    var truck = {
+        truckKey: bag.truckKey
+    }
+
+    mModelTruck.create(
+        truck
+    ).asCallback(
+        function (err, truckRow) {
+            if (err) {
+                winston.error(where, errorCommon.dbOperationFailed(), err);
+                return next(errorCommon.dbOperationFailed());
+            }
+            if (!_.isEmpty(truckRow)) {
+                bag.truckId = truckRow.id;
+            }
+            return next();
+        }
+        );
 }
 
 
@@ -122,17 +200,16 @@ function dbAddData(bag, next) {
     var dbEntry = _getNewModel(bag);
     mModel.create(dbEntry)
         .asCallback(
-            function(err, project) {
-                // body...
-                if (err) {
-                    winston.error(where, errorCommon.dbOperationFailed(), err);
-                    return next(errorCommon.dbOperationFailed())
-                }
-                bag.resBody.data.isInserted = true;
-                return next();
+        function (err, project) {
+            // body...
+            if (err) {
+                winston.error(where, errorCommon.dbOperationFailed(), err);
+                return next(errorCommon.dbOperationFailed())
             }
+            bag.resBody.data.isInserted = true;
+            return next();
+        }
         );
-
 }
 
 
@@ -145,7 +222,6 @@ function _getNewModel(bag) {
         if (!_.isEmpty(bag.reqQuery.featureIds)) {
             var featureIds = bag.reqQuery.featureIds.split(',');
             if (featureIds && featureIds.length >= 0){
-
             }
 
         }
@@ -165,16 +241,21 @@ function _getNewModel(bag) {
 
     //console.log(bag.lat, bag.lng);
     var date = new Date();
+    if (bag.reqQuery.safety_stat) {
+        bag.safety_stat = bag.reqQuery.safety_stat;
 
+    } else {
+        bag.safety_stat = "SAFE";
+    }
     var data = {
         date: date.toString(),
         raw: bag.raw,
         lat: bag.lat,
-        lng: bag.lng
+        lng: bag.lng,
+        safety_stat: bag.safety_stat,
+        truckId: bag.truckId,
+        truckKey: bag.truckKey
     }
 
     return data;
-
-
-
 }

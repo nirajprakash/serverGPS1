@@ -56,6 +56,17 @@ function checkInputParams(bag, next) {
         return next(errorCommon.missingQueryParam("password"));
     }
 
+
+    if (bag.reqQuery.truckids) {
+        var truckIds = bag.reqQuery.truckids.split(",");
+
+        if (truckIds && _.isArray(truckIds)) {
+            bag.truckKeys = truckIds;
+            //bag.query.where.$and.push(__generateInQuery(bag.reqQuery.ids, 'truckid'));
+        }
+
+    }
+
     bag.offset = 0;
     if (bag.reqQuery.offset)
         bag.offset = parseInt(bag.reqQuery.offset);
@@ -93,21 +104,25 @@ function dbGetData(bag, next) {
             ['updatedAt', 'DESC']
         ],
         offset: bag.offset,
-        limit: bag.limit
+        limit: bag.limit,
+        where:{
+
+        }
     };
 
     //query.where.$and = [];
 
-    /*if (bag.bookingStatuses) {
-        query.where.$and.push(__generateLikeQueryFromArray(bag.bookingStatuses, 'status'));
-    }*/
+    if (bag.truckKeys) {
+        query.where.$and = [];
+        query.where.$and.push(__generateLikeQueryFromArray(bag.truckKeys, 'truckKey'));
+    }
 
     winston.debug('query: ', util.inspect(query, false, null, true));
     mModel.findAll(query).asCallback(
         function (err, gpsData) {
             if (err) {
-                winston.error(where, errList.dbOperationFailed(), err);
-                return next(errList.dbOperationFailed());
+                winston.error(where, errorCommon.dbOperationFailed(), err);
+                return next(errorCommon.dbOperationFailed());
             }
 
             bag.gpsData = _.pluck(gpsData, 'dataValues');
@@ -135,11 +150,27 @@ function assignWithResponse(bag, next) {
                 lng: gpsRow.lng
             },
             date: gpsRow.date,
-            truckid: "aa",
-            safety_stat: "SAFE"
+            truckid: gpsRow.truckKey,
+            safety_stat: gpsRow.safety_stat
         };
         data.push(gpsItem);
     });
     bag.resBody = data;
     return next();
+}
+
+function __generateLikeQueryFromArray(likeQuery, queryName) {
+    var queryArr = likeQuery;
+    var querySearch = {
+        $or: []
+    };
+    _.each(queryArr, function(singleQuery) {
+        var query = {};
+        query[queryName] = {};
+        query[queryName] = {
+            $like: '%' + singleQuery + '%'
+        };
+        querySearch.$or.push(query);
+    });
+    return querySearch;
 }
