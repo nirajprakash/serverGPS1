@@ -1,14 +1,14 @@
 'use strict';
-var self = getGPSData;
+var self = getTrucks;
 module.exports = self;
 
-var mModel = sequelize.import('../../models/gps_input.js');
+var mModel = sequelize.import('../../models/truck.js');
 var mAsync = require('async');
 var mUserMain = require('../../utils/userMain.json');
 
 var _ = require('underscore');
 
-function getGPSData(req, res) {
+function getTrucks(req, res) {
     var bag = {
         reqHeader: req.headers,
         reqQuery: req.query,
@@ -67,6 +67,10 @@ function checkInputParams(bag, next) {
 
     }
 
+    if (bag.reqQuery.like) {
+        bag.like = bag.reqQuery.like;
+    }
+
     bag.offset = 0;
     if (bag.reqQuery.offset)
         bag.offset = parseInt(bag.reqQuery.offset);
@@ -105,7 +109,7 @@ function dbGetData(bag, next) {
         ],
         offset: bag.offset,
         limit: bag.limit,
-        where:{
+        where: {
 
         }
     };
@@ -115,17 +119,21 @@ function dbGetData(bag, next) {
     if (bag.truckKeys) {
         query.where.$and = [];
         query.where.$and.push(__generateQueryFromArray(bag.truckKeys, 'truckKey'));
+    } else if (bag.like) {
+        bag.query.where.truckKey = {
+            $like: '%' + bag.like + '%'
+        };
     }
 
     winston.debug('query: ', util.inspect(query, false, null, true));
     mModel.findAll(query).asCallback(
-        function (err, gpsData) {
+        function (err, truckData) {
             if (err) {
                 winston.error(where, errorCommon.dbOperationFailed(), err);
                 return next(errorCommon.dbOperationFailed());
             }
 
-            bag.gpsData = _.pluck(gpsData, 'dataValues');
+            bag.truckData = _.pluck(truckData, 'dataValues');
             //winston.verbose(where + "||  bookingList  ||", bag.bookings);
 
 
@@ -139,26 +147,12 @@ function assignWithResponse(bag, next) {
     var where = bag.where + '|' + assignWithResponse.name;
     winston.verbose(where, 'Inside');
 
-    if (_.isEmpty(bag.gpsData)) {
+    if (_.isEmpty(bag.truckData)) {
         return next();
     }
-    var data = [];
-    _.each(bag.gpsData, function (gpsRow) {
-        var gpsItem = {
-            coords: {
-                lat: gpsRow.lat,
-                lng: gpsRow.lng
-            },
-            date: gpsRow.date,
-            truckid: gpsRow.truckKey,
-            safety_stat: gpsRow.safety_stat
-        };
-        data.push(gpsItem);
-    });
-    bag.resBody = data;
+    bag.resBody = bag.truckData;
     return next();
 }
-
 
 function __generateQueryFromArray(likeQuery, queryName) {
     var queryArr = likeQuery;
@@ -168,7 +162,8 @@ function __generateQueryFromArray(likeQuery, queryName) {
     _.each(queryArr, function (singleQuery) {
         var query = {};
         query[queryName] = {};
-        query[queryName] = singleQuery;
+        query[queryName] = singleQuery 
+        ;
         querySearch.$or.push(query);
     });
     return querySearch;
