@@ -1,7 +1,7 @@
 'use strict'
 
 module.exports = function(sequelize, Datatypes) {
-    return sequelize.define('gps_input', {
+    return sequelize.define('gps_inputs', {
         id: {
             type: Datatypes.INTEGER,
             allowNull: false,
