@@ -237,6 +237,10 @@ function _getNewModel(bag) {
         bag.lng = bag.lng / 1000000;
 
         // console.log(parseInt(rawfields[0]), parseInt(rawfields[1]));
+    }else{
+        bag.lat = -1;
+        bag.lng = -1;
+
     }
 
     //console.log(bag.lat, bag.lng);
