@@ -149,6 +149,7 @@ function assignWithResponse(bag, next) {
                 lat: gpsRow.lat,
                 lng: gpsRow.lng
             },
+            raw: gpsRow.raw,
             date: gpsRow.date,
             truckid: gpsRow.truckKey,
             safety_stat: gpsRow.safety_stat

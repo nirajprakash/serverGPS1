@@ -59,7 +59,3 @@ function postGPSData(req, res) {
     }
        
 }
-<<<<<<< HEAD
-
-=======
->>>>>>> refs/remotes/origin/master
