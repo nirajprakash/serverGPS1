@@ -145,14 +145,8 @@ function assignWithResponse(bag, next) {
     var data = [];
     _.each(bag.gpsData, function (gpsRow) {
         var gpsItem = {
-            coords: {
-                lat: gpsRow.lat,
-                lng: gpsRow.lng
-            },
             raw: gpsRow.raw,
-            date: gpsRow.date,
-            truckid: gpsRow.truckKey,
-            safety_stat: gpsRow.safety_stat
+            date: gpsRow.date
         };
         data.push(gpsItem);
     });
