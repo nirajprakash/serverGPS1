@@ -9,7 +9,7 @@ module.exports = function(sequelize, Datatypes) {
             autoIncrement: true
         },
         date: {
-            type: Datatypes.STRING(255),
+            type: Datatypes.STRING(1000),
             allowNull: false
         },
         raw: {
